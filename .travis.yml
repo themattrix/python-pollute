@@ -1,0 +1,28 @@
+sudo: false
+language: python
+python:
+- 2.6
+- 2.7
+- 3.2
+- 3.3
+- 3.4
+- pypy
+- pypy3
+install:
+- pip install -r requirements.txt
+- pip install coveralls
+- python setup.py develop
+before_script: flake8 setup.py pollute
+script: nosetests --with-coverage --cover-package=pollute pollute/test
+after_success: coveralls
+deploy:
+  provider: pypi
+  user: themattrix
+  password:
+    secure: QQNW9KoHKuKG20cSAer0ceWWXQiKc4k9oStadyb7qd9Cs2oqPd4SW6naFQueewx3kEWCbpCItg5oU7MYLNlb6ZnMqqajwGtAvKDDUwAqk/yb2p0PsVFmFNuBIrpzvtmIYwpAx6OHOIXqJyfIfFgUTnkn3+bKkXFh4BAw2nf+VOQ=
+  distributions: sdist bdist_wheel
+  on:
+    python: 2.7
+    tags: true
+    all_branches: true
+    repo: themattrix/python-pollute
