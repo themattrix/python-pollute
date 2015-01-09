@@ -1,0 +1,5 @@
+nose
+contextlib2
+flake8
+pyflakes
+coverage
