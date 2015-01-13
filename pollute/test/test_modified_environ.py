@@ -26,45 +26,58 @@ def test_no_changes():
 
 
 def test_happy_path():
-    old_env = os.environ.copy()
+    #        | var_a | var_b | var_c | var_d | var_e |
+    # -------+---------------------------------------+
+    # Before | val_a | val_b | val_c |       |       |
+    # During | val_a | stomp |       | added |       |
+    # After  | val_a | val_b | val_c |       | man_e |
 
     added = {
-        'added_var_a': 'added_a',
-        'added_var_b': 'added_b'}
+        'var_b': 'stomp',  # stomp an existing var
+        'var_d': 'added'}  # add a new var
 
     absent = (
-        'existing_var_a',
-        'existing_var_b')
+        'var_c',  # remove an existing var
+        'var_e')  # remove a non-existent var
 
-    def ensure_before():
-        eq_(dict(os.environ), old_env)
-        os.environ['existing_var_a'] = 'existing_a'
-        os.environ['existing_var_b'] = 'existing_b'
+    expected_before = {
+        'var_a': 'val_a',
+        'var_b': 'val_b',
+        'var_c': 'val_c'}
 
-    def ensure_during():
-        expected_env = added.copy()
-        expected_env.update(old_env)
-        eq_(dict(os.environ), expected_env)
-        os.environ['manually_added_var_a'] = 'manual_a'
-        os.environ['manually_added_var_b'] = 'manual_b'
+    expected_during = {
+        'var_a': 'val_a',
+        'var_b': 'stomp',
+        'var_d': 'added'}
 
-    def ensure_after():
-        expected_env = {
-            'manually_added_var_a': 'manual_a',
-            'manually_added_var_b': 'manual_b',
-            'existing_var_a': 'existing_a',
-            'existing_var_b': 'existing_b'}
-        expected_env.update(old_env)
-        eq_(dict(os.environ), expected_env)
+    expected_after = {
+        'var_a': 'val_a',
+        'var_b': 'val_b',
+        'var_c': 'val_c',
+        'var_e': 'man_e'}
+
+    def before():
+        os.environ.clear()
+        os.environ.update(expected_before)
+        eq_(dict(os.environ), expected_before)
+
+    def during():
+        eq_(dict(os.environ), expected_during)
+        os.environ.update({
+            'var_d': 'man_d',   # stomp an existing var
+            'var_e': 'man_e'})  # add a new var
+
+    def after():
+        eq_(dict(os.environ), expected_after)
 
     test_scenarios = partial(
         __ensure_usage,
         kwargs=dict(
             added=added,
             absent=absent),
-        before=ensure_before,
-        during=ensure_during,
-        after=ensure_after)
+        before=before,
+        during=during,
+        after=after)
 
     for s in test_scenarios():
         yield s
@@ -74,7 +87,11 @@ def test_happy_path():
 # Test Helpers
 #
 
-def __ensure_usage(kwargs, before, during, after):
+def __ensure_usage(
+        kwargs,
+        before=lambda: None,
+        during=lambda: None,
+        after=lambda: None):
     old_env = os.environ.copy()
 
     def restore_environ():
