@@ -61,3 +61,6 @@ target/
 
 # Python mode for VIM
 .ropeproject
+
+# Vim swap files
+*.swp

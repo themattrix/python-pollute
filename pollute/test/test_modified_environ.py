@@ -1,65 +1,102 @@
 import os
-from pollute import modified_environ
+from functools import partial
 from nose.tools import with_setup, eq_
-
-
-#
-# Setup and Teardown
-#
-
-__old_env = os.environ.copy()
-
-
-def restore_environ():
-    os.environ.clear()
-    os.environ.update(__old_env)
+from pollute import modified_environ
 
 
 #
 # Tests
 #
 
-@with_setup(teardown=restore_environ)
-def test_context_manager():
-    __ensure_before()
-    with modified_environ(**__updates):
-        __ensure_during()
-    __ensure_after()
+def test_no_changes():
+    old_env = os.environ.copy()
+
+    def ensure_no_changes():
+        eq_(dict(os.environ), old_env)
+
+    test_scenarios = partial(
+        __ensure_usage,
+        kwargs={},
+        before=ensure_no_changes,
+        during=ensure_no_changes,
+        after=ensure_no_changes)
+
+    for s in test_scenarios():
+        yield s
 
 
-@with_setup(teardown=restore_environ)
-def test_decorator():
-    @modified_environ(**__updates)
-    def __update():
-        __ensure_during()
+def test_happy_path():
+    old_env = os.environ.copy()
 
-    __ensure_before()
-    __update()
-    __ensure_after()
+    added = {
+        'added_var_a': 'added_a',
+        'added_var_b': 'added_b'}
+
+    absent = (
+        'existing_var_a',
+        'existing_var_b')
+
+    def ensure_before():
+        eq_(dict(os.environ), old_env)
+        os.environ['existing_var_a'] = 'existing_a'
+        os.environ['existing_var_b'] = 'existing_b'
+
+    def ensure_during():
+        expected_env = added.copy()
+        expected_env.update(old_env)
+        eq_(dict(os.environ), expected_env)
+        os.environ['manually_added_var_a'] = 'manual_a'
+        os.environ['manually_added_var_b'] = 'manual_b'
+
+    def ensure_after():
+        expected_env = {
+            'manually_added_var_a': 'manual_a',
+            'manually_added_var_b': 'manual_b',
+            'existing_var_a': 'existing_a',
+            'existing_var_b': 'existing_b'}
+        expected_env.update(old_env)
+        eq_(dict(os.environ), expected_env)
+
+    test_scenarios = partial(
+        __ensure_usage,
+        kwargs=dict(
+            added=added,
+            absent=absent),
+        before=ensure_before,
+        during=ensure_during,
+        after=ensure_after)
+
+    for s in test_scenarios():
+        yield s
 
 
 #
 # Test Helpers
 #
 
-__updates = dict(
-    added={'added_var': 'baz'},
-    absent=('existing_var',))
+def __ensure_usage(kwargs, before, during, after):
+    old_env = os.environ.copy()
 
+    def restore_environ():
+        os.environ.clear()
+        os.environ.update(old_env)
 
-def __ensure_before():
-    eq_(dict(os.environ), __old_env)
-    os.environ['existing_var'] = 'bar'
+    @with_setup(teardown=restore_environ)
+    def ensure_context_manager():
+        before()
+        with modified_environ(**kwargs):
+            during()
+        after()
 
+    @with_setup(teardown=restore_environ)
+    def ensure_decorator():
+        @modified_environ(**kwargs)
+        def inner():
+            during()
 
-def __ensure_during():
-    expected_env = {'added_var': 'baz'}
-    expected_env.update(__old_env)
-    eq_(dict(os.environ), expected_env)
-    os.environ['manually_added_var'] = 'foo'
+        before()
+        inner()
+        after()
 
-
-def __ensure_after():
-    expected_env = {'manually_added_var': 'foo', 'existing_var': 'bar'}
-    expected_env.update(__old_env)
-    eq_(dict(os.environ), expected_env)
+    yield ensure_context_manager
+    yield ensure_decorator
