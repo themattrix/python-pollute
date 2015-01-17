@@ -60,18 +60,10 @@ def modified_environ(added=None, absent=()):
 if sys.version_info >= (3, 0):
     __map = map                                 # pragma: no cover
     __filter = filter                           # pragma: no cover
-
-    def __keys(x):                              # pragma: no cover
-        return x.keys()                         # pragma: no cover
-
-    def __items(x):                             # pragma: no cover
-        return x.items()                        # pragma: no cover
+    __keys = dict.keys                          # pragma: no cover
+    __items = dict.items                        # pragma: no cover
 else:                                           # pragma: no cover
     from itertools import imap as __map         # pragma: no cover
     from itertools import ifilter as __filter   # pragma: no cover
-
-    def __keys(x):                              # pragma: no cover
-        return x.iterkeys()                     # pragma: no cover
-
-    def __items(x):                             # pragma: no cover
-        return x.iteritems()                    # pragma: no cover
+    __keys = dict.iterkeys                      # pragma: no cover
+    __items = dict.iteritems                    # pragma: no cover

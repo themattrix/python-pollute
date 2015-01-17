@@ -13,7 +13,7 @@ install:
 - pip install coveralls
 - python setup.py develop
 before_script: flake8 setup.py pollute
-script: nosetests --with-coverage --cover-package=pollute pollute/test
+script: nosetests --with-coverage --cover-tests --cover-inclusive --cover-package=pollute pollute/test
 after_success: coveralls
 deploy:
   provider: pypi

@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='pollute',
-    version='1.0.1',
+    version='1.0.2',
     packages=('pollute',),
     url='https://github.com/themattrix/python-pollute',
     license='MIT',

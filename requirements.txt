@@ -1,5 +1,2 @@
-nose
-contextlib2
-flake8
-pyflakes
-coverage
+-r requirements_test.txt
+-r requirements_install.txt
